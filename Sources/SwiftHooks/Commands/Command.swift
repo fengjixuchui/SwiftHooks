@@ -2,12 +2,12 @@ public typealias CommandClosure = (SwiftHooks, CommandEvent, Command) throws -> 
 
 public struct Command {
     public let trigger: String
-    public let arguments: [CommandArgument]
-    public let aliases: [String]
-    public let group: String?
-    public let permissionChecks: [CommandPermissionChecker]
-    public let userInfo: [String: Any]
-    public let execute: CommandClosure
+    public internal(set) var arguments: [CommandArgument]
+    public internal(set) var aliases: [String]
+    public internal(set) var group: String?
+    public internal(set) var permissionChecks: [CommandPermissionChecker]
+    public internal(set) var userInfo: [String: Any]
+    public internal(set) var execute: CommandClosure
     
     public func invoke(on event: CommandEvent, using hooks: SwiftHooks) throws {
         for check in permissionChecks {
@@ -17,6 +17,11 @@ public struct Command {
         }
         try execute(hooks, event, self)
     }
+    
+//    init(_ trigger: String, _ execute: @escaping CommandClosure) {
+//        self.trigger = trigger
+//        self.execute = execute
+//    }
 }
 
 extension Command: CustomStringConvertible {
