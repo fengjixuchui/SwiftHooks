@@ -1,19 +1,65 @@
 import struct Foundation.UUID
 
+/// Marks a type as `CommandArgumentConvertible`.
+///
+/// These types can be created from one or more arguments passed into a command.
 public protocol CommandArgumentConvertible {
+    /// The type arguments will be resolved to.
+    ///
+    /// Defaults to `Self`
     associatedtype ResolvedArgument = Self
     
+    /// Name used in descriptions.
+    ///
+    ///     Int.typedName // "Int"
+    ///
     static var typedName: String { get }
+    
+    /// Attempts to resolve an argument from the provided string.
+    ///
+    /// - parameters:
+    ///     - argument: String taken from the message body.
+    ///     - event: The `CommandEvent` this argument should be resolved for.
+    ///
+    /// - throws:
+    ///     `CommandError.UnableToConvertArgument` when `ResolvedArgument` can not be created from `argument`
+    ///     `CommandError.ArgumentNotFound` when no argument is found
+    ///
+    /// - returns: The resolved argument
     static func resolveArgument(_ argument: String, on event: CommandEvent) throws -> ResolvedArgument
+    
+    /// Attempts to resolve an argument from the provided string.
+    ///
+    /// A default implementation is provided. The default implementation
+    /// will throw `CommandArgument.ArgumentNotFound` when `nil` is passed in.
+    ///
+    /// - parameters:
+    ///     - argument: String taken from the message body.
+    ///     - event: The `CommandEvent` this argument should be resolved for.
+    ///
+    /// - throws:
+    ///     `CommandError.UnableToConvertArgument` when `ResolvedArgument` can not be created from `argument`
+    ///     `CommandError.ArgumentNotFound` when no argument is found
+    ///
+    /// - returns: The resolved argument
     static func resolveArgument(_ argument: String?, arg: CommandArgument, on event: CommandEvent) throws -> ResolvedArgument
 }
 
+/// Marks a type as both `CommandArgumentConvertible` and `Consuming`.
+///
+/// `ConsumingCommandArgumentConvertible` types will not take a single arguments, but rather `[x...]`, consuming the entire list of arguments.
+/// Examples of arguments that support consuming are `Array` and `String.Consuming`
 public protocol ConsumingCommandArgumentConvertible: CommandArgumentConvertible, AnyConsuming { }
 
-public protocol CommandArgument {
+/// A representation of an unresolved argument
+public protocol CommandArgument: CustomStringConvertible {
+    /// Indicating wether or not the argument is optional and can be `nil`.
     var isOptional: Bool { get }
+    /// Indicating wether or not the argument is consuming, or will take a single argument.
     var isConsuming: Bool { get }
+    /// The type of the argument.
     var componentType: String { get }
+    /// The name of the argument.
     var componentName: String { get }
 }
 
@@ -32,7 +78,9 @@ extension CommandArgument {
     }
 }
 
-
+/// Any type capable of consuming.
+///
+/// See also `ConsumingCommandArgumentConvertible`
 public protocol AnyConsuming {}
 protocol AnyOptionalType {
     var isNil: Bool { get }
@@ -76,6 +124,10 @@ extension String: CommandArgumentConvertible {
 }
 
 public extension String {
+    /// Helper to create consuming `String` arguments.
+    ///
+    ///     Command("test")
+    ///         .arg(String.Consuming.self, "consumingString")
     struct Consuming: ConsumingCommandArgumentConvertible {
         public static var typedName: String {
             String.typedName
@@ -88,6 +140,18 @@ public extension String {
 }
 
 extension FixedWidthInteger {
+
+    /// Attempts to resolve an argument from the provided string.
+    ///
+    /// - parameters:
+    ///     - argument: String taken from the message body.
+    ///     - event: The `CommandEvent` this argument should be resolved for.
+    ///
+    /// - throws:
+    ///     `CommandError.UnableToConvertArgument` when `ResolvedArgument` can not be created from `argument`
+    ///     `CommandError.ArgumentNotFound` when no argument is found
+    ///
+    /// - returns: The resolved argument
     public static func resolveArgument(_ argument: String, on event: CommandEvent) throws -> Self {
         guard let number = Self(argument) else {
             throw CommandError.UnableToConvertArgument(argument, "\(self.self)")
@@ -108,6 +172,18 @@ extension UInt32: CommandArgumentConvertible { }
 extension UInt64: CommandArgumentConvertible { }
 
 extension BinaryFloatingPoint {
+
+    /// Attempts to resolve an argument from the provided string.
+    ///
+    /// - parameters:
+    ///     - argument: String taken from the message body.
+    ///     - event: The `CommandEvent` this argument should be resolved for.
+    ///
+    /// - throws:
+    ///     `CommandError.UnableToConvertArgument` when `ResolvedArgument` can not be created from `argument`
+    ///     `CommandError.ArgumentNotFound` when no argument is found
+    ///
+    /// - returns: The resolved argument
     public static func resolveArgument(_ argument: String, on event: CommandEvent) throws -> Self {
         guard let number = Double(argument) else {
             throw CommandError.UnableToConvertArgument(argument, "\(self.self)")
